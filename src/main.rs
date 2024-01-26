@@ -1,3 +1,4 @@
+use textplots::{Chart, LabelBuilder, LabelFormat, Plot, Shape};
 
 use exitfailure::ExitFailure;
 use reqwest::Url;
@@ -64,6 +65,12 @@ impl WeatherResponse {
         let res = reqwest::get(url.as_str()).await?.json::<WeatherForecast>().await?;
         let mut tempVec = vec![];
         let temp = res.forecast.forecastday[0].hour.iter().for_each(|x| tempVec.push((x.time.to_owned(),x.temp_c)));
+        
+        Chart::new(180,60,0.0,24.0)
+        .lineplot(&Shape::Lines(&tempVec.iter().enumerate().map(|(index ,&(_,temp))| (index as f32,temp)).collect::<Vec<_>>()))
+        .x_label_format(LabelFormat::Custom(Box::new(move |val| {
+            format!("{}", val)
+        }))).nice();
         Ok(WeatherResponse::Forecast {temp_vec: tempVec})
         
     
