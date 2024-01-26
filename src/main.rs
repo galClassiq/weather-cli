@@ -22,6 +22,15 @@ struct Args {
 
 }
 
+
+#[derive(Deserialize, Debug)]
+struct CurrentWeather{
+    current: CurrentDetails
+}
+#[derive(Deserialize, Debug)]
+struct CurrentDetails{
+    temp_c : f32,
+}
 #[derive(Deserialize, Debug)]
 struct ForecastHour{
     temp_c : f32,
@@ -44,30 +53,9 @@ impl WeatherResponse {
     async fn fetch_current_weather(location: &String, api_key: &String) -> Result<Self, ExitFailure> {
         const BASE_URL: &str = "http://api.weatherapi.com/v1/current.json";
         let url = Url::parse_with_params(BASE_URL, &[("key", api_key), ("q", location)]).unwrap();   
-        let res = reqwest::get(url.as_str()).await?.json::<serde_json::Value>().await?;
-        //unwrap current field of res or handle error   
-        match res.get("current") {
-            
-            Some(x) => {
-                match x.get("temp_c") {  
-                    Some(y) => {
-                        let weather_res = WeatherResponse::Current {temp_c: y.as_f64().unwrap() as f32};
-                        Ok(weather_res)
-                    },
-                    None => {
-                        // let weather_res = WeatherResponse {temp_c: 0.0};
-                        Err(ExitFailure::from(std::io::Error::new(std::io::ErrorKind::Other, "Temperature not found")))
-                    }
-
-                }
-            },
-            None => {
-                Err(ExitFailure::from(std::io::Error::new(std::io::ErrorKind::Other, "Location not found")))
-            }
-
-        } 
-
-        
+        let res = reqwest::get(url.as_str()).await?.json::<CurrentWeather>().await?;
+        let temp = res.current.temp_c;
+        Ok(WeatherResponse::Current {temp_c: temp})
     }
 
     async fn fetch_forecast(location: &String, api_key: &String) -> Result<Self, ExitFailure> {
