@@ -1381,6 +1381,7 @@ dependencies = [
  "clap 4.4.18",
  "exitfailure",
  "reqwest",
+ "rgb",
  "serde",
  "serde_derive",
  "serde_json",
