@@ -1,3 +1,5 @@
+use rgb::{RGB, RGB8};
+use textplots::{Chart, ColorPlot, LabelBuilder, LabelFormat, Plot, Shape};
 
 use exitfailure::ExitFailure;
 use reqwest::Url;
@@ -7,7 +9,7 @@ use clap::Parser;
 #[derive(Serialize, Deserialize, Debug)]
 enum WeatherResponse {
     Current {temp_c : f32},
-    Forecast {temp_vec : Vec<(String,f32)>},
+    Forecast {temp_vec : Vec<(String,f32)>, percipitation_mm_vec : Vec<(String,f32)>},
 }
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -34,6 +36,7 @@ struct CurrentDetails{
 #[derive(Deserialize, Debug)]
 struct ForecastHour{
     temp_c : f32,
+    precip_mm : f32,
     time : String
 }
 #[derive(Deserialize, Debug)]
@@ -62,9 +65,19 @@ impl WeatherResponse {
         const BASE_URL: &str = "http://api.weatherapi.com/v1/forecast.json";
         let url = Url::parse_with_params(BASE_URL, &[("key", api_key), ("q", location)]).unwrap(); 
         let res = reqwest::get(url.as_str()).await?.json::<WeatherForecast>().await?;
-        let mut tempVec = vec![];
-        let temp = res.forecast.forecastday[0].hour.iter().for_each(|x| tempVec.push((x.time.to_owned(),x.temp_c)));
-        Ok(WeatherResponse::Forecast {temp_vec: tempVec})
+        let mut temp_vec = vec![];
+        let mut percipitation_vec = vec![];
+
+        let _temp = res.forecast.forecastday[0].hour.iter().for_each(|x| temp_vec.push((x.time.to_owned(),x.temp_c)));
+        let _percipitation = res.forecast.forecastday[0].hour.iter().for_each(|x: &ForecastHour| percipitation_vec.push((x.time.to_owned(),x.precip_mm)));
+        
+        Chart::new(180,60,0.0,24.0)
+        .linecolorplot(&Shape::Lines(&temp_vec.iter().enumerate().map(|(index ,&(_,temp))| (index as f32,temp)).collect::<Vec<_>>()),RGB8 { r: 255, g: 0, b: 0 })
+        .linecolorplot(&Shape::Lines(&percipitation_vec.iter().enumerate().map(|(index ,&(_,precip))| (index as f32,precip)).collect::<Vec<_>>()),RGB8 { r: 0, g: 0, b: 255 })
+        .x_label_format(LabelFormat::Custom(Box::new(move |val| {
+            format!("{}", val)
+        }))).nice();
+        Ok(WeatherResponse::Forecast {temp_vec, percipitation_mm_vec: percipitation_vec})
         
     
     }
